@@ -30,10 +30,10 @@ import pandas_ta as ta
 
 PHT = ZoneInfo("Asia/Manila")
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # required
-EMAIL_USER = os.environ.get("EMAIL_USER")          # required
-EMAIL_TO = os.environ.get("EMAIL_TO", EMAIL_USER)  # defaults to sender
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # required
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY") # required
+EMAIL_USER = os.environ.get("EMAIL_USER")         # required
+EMAIL_TO = os.environ.get("EMAIL_TO", EMAIL_USER) # defaults to sender
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # required
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
