@@ -19,7 +19,6 @@ from email.utils import formatdate, make_msgid
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-
 # ---------------------------
 # 1) Configuration (env vars only)
 # ---------------------------
