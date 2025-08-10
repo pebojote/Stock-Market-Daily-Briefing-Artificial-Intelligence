@@ -1,19 +1,15 @@
-# Use the official lightweight Python image.
-# https://hub.docker.com/_/python
-FROM python:3.9-slim
+# Use an official Python runtime as a parent image
+FROM python:3.11-slim
 
 # Set the working directory to /app
 WORKDIR /app
 
-# Copy the requirements file and install dependencies
-COPY requirements.txt .
+# Copy the current directory contents into the container at /app
+COPY . /app
 
-# Install dependencies, no need for Gunicorn
-RUN pip install --no-cache-dir python-dotenv flask openai markdown
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code
-COPY . .
-
-# Run the application directly.
-# The script will execute the daily_job() and then exit.
-CMD ["python3", "main.py"]
+# Run the web server
+# Gunicorn is used as a production-ready WSGI server
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app"]
