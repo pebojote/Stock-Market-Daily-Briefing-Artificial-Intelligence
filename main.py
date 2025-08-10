@@ -8,10 +8,10 @@ import smtplib
 import logging
 import json
 import html
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import Iterable, Optional, Any, Dict, List
-from flask import Flask, request
 
 from openai import OpenAI
 import markdown
@@ -28,7 +28,7 @@ PHT = ZoneInfo("Asia/Manila")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")  # required
 EMAIL_USER = os.environ.get("EMAIL_USER")          # required
 EMAIL_TO = os.environ.get("EMAIL_TO", EMAIL_USER)  # defaults to sender
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # required
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD") # required
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
@@ -519,7 +519,7 @@ def build_plain_text(data: Dict[str, Any], now_pht: datetime) -> str:
     lines.append(f"- Sentiment: {sentiment}")
     lines.append(f"- Indexes: S&P 500 — {sp500}; Nasdaq — {nasdaq}")
     for n in news_items[:5]:
-        lines.append(f"   • {n}")
+        lines.append(f"    • {n}")
     lines.append("")
     lines.append("📃 Watchlist (top 5 by Rank):")
     ranked = sorted(watchlist, key=lambda x: ["Worse","Very Bad","Bad","Neutral","Good","Very Good","Excellent"].index(x.get("rank","Neutral")))[:5]
@@ -539,7 +539,7 @@ def build_plain_text(data: Dict[str, Any], now_pht: datetime) -> str:
         if vals:
             lines.append(f"- {title}:")
             for v in vals[:5]:
-                lines.append(f"   • {v}")
+                lines.append(f"    • {v}")
     lines.append("")
     lines.append("💡 Opportunities:")
     for o in opportunities[:6]:
@@ -560,21 +560,7 @@ def get_market_briefing_data(prompt: str, model_candidates: Iterable[str] = MODE
         for model in model_candidates:
             try:
                 logger.info(f"Requesting briefing JSON with model={model}")
-                # Note: `client.responses.create` seems to be a placeholder for a specific API. 
-                # Assuming you'd use a method like `client.chat.completions.create` for a real OpenAI call.
-                # The implementation here will need to be adapted based on the real API.
-                # For this example, we'll assume a dummy response to make the Flask app runnable.
-                
-                # --- Placeholder for a real API call ---
-                # resp = client.chat.completions.create(
-                #     model=model,
-                #     messages=[{"role": "user", "content": prompt}],
-                #     response_format={"type": "json_object"}
-                # )
-                # text = resp.choices[0].message.content
-                # ----------------------------------------
-                
-                # Dummy response for demonstration
+                # Placeholder for a real API call. Replace this with your actual call.
                 text = json.dumps({
                     "date": "Sunday, August 10, 2025",
                     "market_overview": {
@@ -640,19 +626,14 @@ def daily_job() -> None:
     send_email(subject, html_report, plain_report)
 
 # ---------------------------
-# 10) Flask App Entry point
+# 10) Main entry point for Cloud Run Job
 # ---------------------------
-app = Flask(__name__)
-
-@app.route("/", methods=["POST"])
-def run_job():
-    logger.info("Received request to run the daily job.")
+if __name__ == "__main__":
+    logger.info("Starting Cloud Run Job.")
     try:
         daily_job()
-        return "Daily job completed successfully.", 200
+        logger.info("Cloud Run Job finished successfully.")
     except Exception as e:
-        logger.error(f"Daily job failed: {e}")
-        return f"Daily job failed: {e}", 500
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+        logger.error(f"Cloud Run Job failed: {e}", exc_info=True)
+        # Re-raise the exception so Cloud Run can mark the job as failed.
+        raise
