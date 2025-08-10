@@ -7,17 +7,16 @@ WORKDIR /app
 
 # Copy the requirements file and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Install dependencies, including Gunicorn for production
+RUN pip install --no-cache-dir gunicorn flask python-dotenv openai
 
 # Copy the rest of the application code
 COPY . .
 
-# Set environment variables for the Flask app to listen on all interfaces.
-ENV FLASK_APP=main.py
-ENV FLASK_RUN_HOST=0.0.0.0
-
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application
-CMD ["flask", "run", "--port=8080"]
+# Run the application with Gunicorn
+# Gunicorn will listen on the PORT environment variable automatically provided by Cloud Run.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app"]
