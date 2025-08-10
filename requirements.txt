@@ -1,5 +1,3 @@
-gunicorn
-requests
 openai
+python-dotenv
 markdown
-flask
