@@ -12,6 +12,7 @@ on:
     # - cron: '15 20 * * 1-5'
     # # Overnight preview: 8:00 PM ET (12:00 AM UTC next day)
     # - cron: '0 0 * * 1-5'
+    # Testing
     - cron: '15 1 * * *'
   workflow_dispatch:
 
