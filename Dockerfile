@@ -9,7 +9,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies, including Gunicorn for production
-RUN pip install --no-cache-dir gunicorn flask python-dotenv openai
+RUN pip install --no-cache-dir gunicorn python-dotenv openai markdown
 
 # Copy the rest of the application code
 COPY . .
