@@ -16,8 +16,8 @@ on:
     # # Overnight preview: 8:00 PM ET (12:00 AM UTC next day)
     # - cron: '0 0 * * 1-5'
     # Testing
-    - cron: '43 1 * * *'
-  # workflow_dispatch:
+    - cron: '15 2 * * *'
+  workflow_dispatch:
 
 jobs:
   run-script:
