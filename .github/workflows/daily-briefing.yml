@@ -1,9 +1,21 @@
 name: Daily Market Briefing
 
 on:
+  push:
+    branches:
+      - main
   schedule:
-    # Testing: runs at 2:15 UTC
-    - cron: '25 2 * * *'
+    # Premarket: 7:00 AM ET (11:00 AM UTC)
+    - cron: '0 11 * * 1-5'
+    # Opening Bell Alert: 9:45 AM ET (1:45 PM UTC)
+    - cron: '45 13 * * 1-5'
+    # Midday check-in: 11:30 AM ET (3:30 PM UTC)
+    - cron: '30 15 * * 1-5'
+    # Closing Summary: 4:15 PM ET (8:15 PM UTC)
+    - cron: '15 20 * * 1-5'
+    # Overnight preview: 8:00 PM ET (12:00 AM UTC next day)
+    - cron: '0 0 * * 1-5'
+  workflow_dispatch:
 
 jobs:
   run-script:
@@ -12,8 +24,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false  # We'll use our own token to push
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,13 +42,3 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-
-      - name: Commit and Push Changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Auto-update from GitHub Actions" || echo "No changes to commit"
-          git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
