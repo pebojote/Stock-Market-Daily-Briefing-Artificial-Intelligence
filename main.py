@@ -640,16 +640,19 @@ def daily_job() -> None:
     send_email(subject, html_report, plain_report)
 
 # ---------------------------
-# 10) Main entry point for the job
+# 10) Flask App Entry point
 # ---------------------------
+app = Flask(__name__)
 
-# Instead of running a Flask app, we'll just run the daily_job() function once
+@app.route("/", methods=["POST"])
+def run_job():
+    logger.info("Received request to run the daily job.")
+    try:
+        daily_job()
+        return "Daily job completed successfully.", 200
+    except Exception as e:
+        logger.error(f"Daily job failed: {e}")
+        return f"Daily job failed: {e}", 500
+
 if __name__ == "__main__":
-    try:
-        logger.info("Starting daily job execution.")
-        daily_job()
-        logger.info("Daily job completed successfully. Exiting.")
-    except Exception as e:
-        logger.error(f"Daily job failed: {e}")
-        # Exit with a non-zero status code to indicate failure
-        exit(1)
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
