@@ -12,8 +12,8 @@ on:
     # - cron: '15 20 * * 1-5'
     # # Overnight preview: 8:00 PM ET (12:00 AM UTC next day)
     # - cron: '0 0 * * 1-5'
-    - cron: '51 0 * * *'
-  # workflow_dispatch:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
 
 jobs:
   run-script:
