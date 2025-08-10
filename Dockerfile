@@ -1,35 +1,22 @@
-# Stage 1: Build the application environment
-# Use a Python base image with a smaller footprint
-FROM python:3.11-slim as builder
+# Use the official lightweight Python image.
+# https://hub.docker.com/_/python
+FROM python:3.9-slim
 
-# Set the working directory
+# Set the working directory to /app
 WORKDIR /app
 
-# Install dependencies needed for packaging
-RUN pip install --no-cache-dir poetry
+# Copy the requirements file and install dependencies
+COPY requirements.txt .
 
-# Copy only the files needed to install dependencies
-COPY poetry.lock pyproject.toml ./
+# Install dependencies, including Gunicorn for production
+RUN pip install --no-cache-dir gunicorn python-dotenv flask openai markdown
 
-# Install project dependencies
-RUN poetry install --no-root --no-dev --no-interaction --no-ansi
+# Copy the rest of the application code
+COPY . .
 
-# Stage 2: Create the final runtime image
-FROM python:3.11-slim
-
-# Set the working directory
-WORKDIR /app
-
-# Copy the installed dependencies from the builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Copy the application code
-COPY main.py .
-
-# Expose the port the Flask app runs on
+# Expose the port the app runs on
 EXPOSE 8080
 
-# Define the command to run the application
-# Use gunicorn or another production-ready server for robustness
-CMD ["poetry", "run", "python", "main.py"]
+# Run the application with Gunicorn
+# Gunicorn will listen on the PORT environment variable automatically provided by Cloud Run.
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app"]
