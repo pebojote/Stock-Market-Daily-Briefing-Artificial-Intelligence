@@ -15,6 +15,8 @@ from typing import Iterable, Optional, Any, Dict, List
 
 from openai import OpenAI
 import markdown
+import yfinance as yf
+import pandas as pd
 from email.utils import formatdate, make_msgid
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -268,7 +270,88 @@ def cell(text: Any) -> str:
     return f"<td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{html.escape(str(text))}</td>"
 
 # ---------------------------
-# 8) HTML builder (emoji-rich, pre-sorted views)
+# 8) Verification
+# ---------------------------
+
+def verify_and_enrich_data(data: Dict[str, Any], now_pht: datetime) -> Dict[str, Any]:
+    """
+    Verifies and enriches the market data JSON.
+    - Fetches real, up-to-date prices for open positions.
+    - Validates tickers in the watchlist.
+    - Adds a 'verified_at' timestamp.
+    """
+    logger.info("Verifying and enriching data...")
+
+    # Add verification timestamp
+    data["verified_at"] = now_pht.isoformat()
+
+    open_positions = data.get("open_positions", [])
+    watchlist = data.get("watchlist", [])
+
+    all_tickers = set()
+    if open_positions:
+        for p in open_positions:
+            if p.get("ticker"):
+                all_tickers.add(p["ticker"])
+    if watchlist:
+        for i in watchlist:
+            if i.get("ticker"):
+                all_tickers.add(i["ticker"])
+
+    if not all_tickers:
+        return data
+
+    ticker_list = list(all_tickers)
+    try:
+        # Download historical data for all tickers at once
+        # Using "1d" period gets the last available closing price.
+        # For after-hours, pre-market, this will be the last official close.
+        ticker_data = yf.download(ticker_list, period="1d", progress=False)
+
+        if ticker_data.empty:
+            logger.warning(f"Could not fetch any data from yfinance for tickers: {ticker_list}")
+            return data
+
+        # The 'Close' column may not exist if all tickers failed.
+        if 'Close' not in ticker_data.columns:
+            logger.warning(f"yfinance returned no 'Close' data for tickers: {ticker_list}")
+            return data
+
+        # Get the last valid price for each ticker
+        last_prices = ticker_data['Close'].tail(1).to_dict('records')[0]
+
+        # Filter out tickers that yfinance returned no data for
+        valid_tickers = {t for t, p in last_prices.items() if pd.notna(p)}
+        logger.info(f"Successfully fetched prices for: {list(valid_tickers)}")
+
+        # Verify and enrich open positions
+        if open_positions:
+            for p in open_positions:
+                ticker = p.get("ticker")
+                if ticker in valid_tickers:
+                    latest_price = last_prices[ticker]
+                    logger.info(f"Updating '{ticker}' current price to ${latest_price:.2f}")
+                    p["current_price"] = latest_price
+                elif ticker:
+                    logger.warning(f"Could not fetch price for open position: '{ticker}'")
+
+        # Verify watchlist tickers
+        if watchlist:
+            invalid_watchlist_tickers = []
+            for item in watchlist:
+                ticker = item.get("ticker")
+                if ticker and ticker not in valid_tickers:
+                    invalid_watchlist_tickers.append(ticker)
+            if invalid_watchlist_tickers:
+                logger.warning(f"Watchlist tickers may be invalid or have no recent data: {invalid_watchlist_tickers}")
+
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while fetching data from yfinance: {e}", exc_info=True)
+
+    return data
+
+# ---------------------------
+# 9) HTML builder (emoji-rich, pre-sorted views)
 # ---------------------------
 
 def build_watchlist_tables(data: List[Dict[str, Any]]) -> str:
@@ -492,7 +575,8 @@ def build_html_email(data: Dict[str, Any], now_pht: datetime) -> str:
       </div>
 
       <div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:10px;">
-        Sent automatically • Times shown in Asia/Manila (PHT)
+        Sent automatically • Times shown in Asia/Manila (PHT) <br/>
+        {'Prices verified at ' + datetime.fromisoformat(data['verified_at']).strftime('%Y-%m-%d %H:%M:%S %Z') if 'verified_at' in data else ''}
       </div>
     </div>
   </body>
@@ -511,10 +595,14 @@ def build_plain_text(data: Dict[str, Any], now_pht: datetime) -> str:
     journal = data.get("journal") or {}
     opportunities = data.get("opportunities") or []
     reminders = data.get("reminders") or []
+    verified_at = data.get("verified_at")
 
     lines = []
     lines.append(f"📊 Daily Market Briefing — {date} (Asia/Manila)")
     lines.append("")
+    if verified_at:
+        lines.append(f"✓ Prices verified at {datetime.fromisoformat(verified_at).strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        lines.append("")
     lines.append("📈 Market overview")
     lines.append(f"- Sentiment: {sentiment}")
     lines.append(f"- Indexes: S&P 500 — {sp500}; Nasdaq — {nasdaq}")
@@ -620,6 +708,7 @@ def daily_job() -> None:
     logger.info("Fetching market briefing (JSON)...")
     prompt = build_prompt(now_pht)
     data = get_market_briefing_data(prompt)
+    data = verify_and_enrich_data(data, now_pht)
     html_report = build_html_email(data, now_pht)
     plain_report = build_plain_text(data, now_pht)
     subject = f"📊 Daily Market Briefing – {now_pht:%B %d, %Y at %I:%M %p}"
