@@ -3,3 +3,4 @@ python-dotenv
 markdown
 yfinance
 pandas
+Jinja2
