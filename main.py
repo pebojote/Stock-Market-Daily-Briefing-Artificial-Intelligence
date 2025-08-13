@@ -176,10 +176,14 @@ Return the complete JSON object with the analytical fields populated. Do not add
 
 def call_openai_api(prompt: str, model: str) -> str:
     logger.info(f"Requesting briefing JSON with model={model}")
+
     # This is a placeholder for the actual API call.
     if model == DATA_MODEL:
-        # In a real scenario, GPT-4o would generate this based on the provided market data.
-        # For the mock, we'll create a full structure.
+        # Parse the raw market data from the prompt
+        raw_market_data_str = prompt.split("Raw Market Data (prices and news):\n")[1].split("\n\nStructure this data")[0]
+        market_data = json.loads(raw_market_data_str)
+
+        # In a real scenario, GPT-4o would generate this. For the mock, we build it.
         structured_data = {
             "session": "Morning Session",
             "market_overview": {
@@ -190,7 +194,7 @@ def call_openai_api(prompt: str, model: str) -> str:
             "watchlist": [
                 {
                     "ticker": ticker,
-                    "news": [f"News item 1 for {ticker}.", f"News item 2 for {ticker}."],
+                    "news": market_data.get(ticker, {}).get('news', []),
                     "support": 100, "resistance": 120, "rsi": 55, "macd": "bullish",
                     "moving_averages": "Above 50-day MA", "patterns": ["cup and handle"],
                     "suggested_entry": f"Consider entry above 120",
@@ -199,7 +203,7 @@ def call_openai_api(prompt: str, model: str) -> str:
             ],
             "open_positions": [
                 {
-                    "ticker": ticker, "entry_price": price, "current_price": price * 1.02,
+                    "ticker": ticker, "entry_price": price, "current_price": market_data.get(ticker, {}).get('price', price),
                     "outlook": "", "action_suggestion": "", "target_sell_zone": ""
                 } for ticker, price in OPEN_POSITIONS.items()
             ],
