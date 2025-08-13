@@ -5,149 +5,121 @@
       <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 20px 8px 20px;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:22px;font-weight:800;color:#111827;">📊 Daily Market Briefing</div>
-          <div style="font-size:12px;color:#6b7280;"> {{ date }} • Asia/Manila</div>
+          <div style="font-size:12px;color:#6b7280;">{{ session }} • {{ date }}</div>
         </div>
 
         <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0 16px 0;" />
 
+        <!-- 1. Market Overview -->
         <div style="margin:4px 0 10px 0;">
-          <div style="font-weight:700;color:#111827;margin-bottom:6px;">📈 Market overview</div>
+          <div style="font-weight:700;color:#111827;margin-bottom:6px;">1. Market Overview</div>
           <div style="font-size:14px;color:#111827;">
             🌍 Sentiment: <strong>{{ market_overview.sentiment }}</strong><br/>
             📊 Indexes: S&P 500 — <strong>{{ market_overview.indexes.sp500 }}</strong> · Nasdaq — <strong>{{ market_overview.indexes.nasdaq }}</strong>
           </div>
-          {% if market_overview.news %}
+          {% if market_overview.economic_events %}
+          <p style="font-size:14px;color:#111827;margin-top:8px;"><strong>Major Economic Events:</strong></p>
           <ul style='margin:8px 0 0 18px;color:#111827;font-size:14px;'>
-            {% for item in market_overview.news %}
-            <li>{{ item }}</li>
+            {% for event in market_overview.economic_events %}
+            <li>{{ event }}</li>
             {% endfor %}
           </ul>
           {% endif %}
         </div>
 
+        <!-- 2. Stock Watchlist -->
         <div style="margin:16px 0 10px 0;">
-          <div style="font-weight:700;color:#111827;margin-bottom:6px;">📃 Watchlist</div>
-          <div style="margin:20px 0 8px 0;font-weight:700;color:#111827;">🏅 Sorted by Rank (best → worst)</div>
+          <div style="font-weight:700;color:#111827;margin-bottom:6px;">2. Stock Watchlist</div>
           <table role="grid" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             <thead>
               <tr style="background:#f3f4f6;">
                 <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Ticker</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">RSI</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">MACD</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">MA Trend</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Pattern</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Entry</th>
+                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Details</th>
                 <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Rank</th>
                 <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Action</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Notes</th>
               </tr>
             </thead>
             <tbody>
-              {% for r in watchlist %}
+              {% for s in watchlist %}
               <tr>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{{ r.ticker }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:{{ rsi_color(r.rsi) }};'>{{ "%.0f"|format(r.rsi) }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:{{ macd_color(r.macd) }};'>{{ r.macd }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{{ r.ma_trend }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{{ r.pattern }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>${{ "%.2f"|format(r.entry) if r.entry else "—" }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;'><span style="background:{{ rank_color(r.rank) }};color:#ffffff;padding:2px 8px;border-radius:999px;font-weight:600;font-size:12px;display:inline-block;">{{ r.rank }}</span></td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;'><span style="background:{{ action_color(r.action) }};color:#ffffff;padding:2px 8px;border-radius:999px;font-weight:600;font-size:12px;display:inline-block;">{{ r.action }}</span></td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{{ r.notes }}</td>
+                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;'><strong>{{ s.ticker }}</strong></td>
+                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>
+                  <strong>S/R:</strong> {{ s.support }} / {{ s.resistance }} | <strong>RSI:</strong> {{ s.rsi }} | <strong>MACD:</strong> {{ s.macd }}<br/>
+                  <strong>MAs:</strong> {{ s.moving_averages }}<br/>
+                  <strong>Patterns:</strong> {{ s.patterns | join(', ') }}<br/>
+                  <strong>Entry:</strong> {{ s.suggested_entry }}<br/>
+                  {% if s.news %}
+                  <strong>News:</strong>
+                  <ul>{% for n in s.news %}<li>{{ n }}</li>{% endfor %}</ul>
+                  {% endif %}
+                </td>
+                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;vertical-align:top;'><span style="background:{{ rank_color(s.rank) }};color:#ffffff;padding:2px 8px;border-radius:999px;font-weight:600;font-size:12px;display:inline-block;">{{ s.rank }}</span></td>
+                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;vertical-align:top;'><span style="background:{{ action_color(s.action) }};color:#ffffff;padding:2px 8px;border-radius:999px;font-weight:600;font-size:12px;display:inline-block;">{{ s.action }}</span></td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
 
+        <!-- 3. Open Positions -->
         <div style="margin:16px 0 10px 0;">
-          <div style="font-weight:700;color:#111827;margin-bottom:6px;">💼 Open positions (risk-aware)</div>
+          <div style="font-weight:700;color:#111827;margin-bottom:6px;">3. Open Positions</div>
           <table role="grid" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             <thead>
               <tr style="background:#f3f4f6;">
                 <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Ticker</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Entry</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Current</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">P/L %</th>
-                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Alert</th>
+                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">P/L</th>
+                <th style="text-align:left;padding:10px 12px;font-size:13px;color:#374151;">Analysis</th>
               </tr>
             </thead>
             <tbody>
               {% for p in open_positions %}
               <tr style='{{ risk_row_style(pct(p.entry_price, p.current_price)) }}'>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{{ p.ticker }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>${{ "%.2f"|format(p.entry_price) }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>${{ "%.2f"|format(p.current_price) }}</td>
+                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;vertical-align:top;'><strong>{{ p.ticker }}</strong></td>
                 <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:{{ '#16a34a' if pct(p.entry_price, p.current_price) > 0 else ('#dc2626' if pct(p.entry_price, p.current_price) < 0 else '#374151') }};'>{{ pct(p.entry_price, p.current_price) | format_percent }}</td>
-                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>{{ "❌ Breach > 7%" if pct(p.entry_price, p.current_price) < -7 else ("⚠️ Near stop 5.5–7%" if pct(p.entry_price, p.current_price) < -5.5 else "—") }}</td>
+                <td style='padding:10px 12px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#111827;'>
+                  <strong>Outlook:</strong> {{ p.outlook }}<br/>
+                  <strong>Action:</strong> {{ p.action_suggestion }}<br/>
+                  <strong>Target:</strong> {{ p.target_sell_zone }}
+                </td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
-          <div style="font-size:12px;color:#6b7280;margin-top:6px;">⚠️ Highlighting: {{ risk_lower }}%–{{ risk_upper }}% (orange) • ≥ {{ risk_upper }}% (red)</div>
         </div>
 
+        <!-- 4. Trade Journal -->
         <div style="margin:16px 0 10px 0;">
-          <div style="font-weight:700;color:#111827;margin-bottom:6px;">📝 Trade journal</div>
-          {% if journal.did_right or journal.improve or journal.traps %}
-          <ul style='margin:6px 0 0 18px;padding:0;'>
-            {% if journal.did_right %}
-            <li style='margin:8px 0;'><strong>✅ What went well:</strong>
-              <ul style='margin:6px 0 0 18px;'>
-                {% for item in journal.did_right %}
-                <li>{{ item }}</li>
-                {% endfor %}
-              </ul>
-            </li>
-            {% endif %}
-            {% if journal.improve %}
-            <li style='margin:8px 0;'><strong>⚠️ What to improve:</strong>
-              <ul style='margin:6px 0 0 18px;'>
-                {% for item in journal.improve %}
-                <li>{{ item }}</li>
-                {% endfor %}
-              </ul>
-            </li>
-            {% endif %}
-            {% if journal.traps %}
-            <li style='margin:8px 0;'><strong>🧠 Psychological traps:</strong>
-              <ul style='margin:6px 0 0 18px;'>
-                {% for item in journal.traps %}
-                <li>{{ item }}</li>
-                {% endfor %}
-              </ul>
-            </li>
-            {% endif %}
+          <div style="font-weight:700;color:#111827;margin-bottom:6px;">4. Trade Journal Summary</div>
+          <ul style='margin:6px 0 0 18px;padding:0;font-size:14px;'>
+            <li><strong>What went well:</strong> {{ trade_journal.did_right | join(', ') }}</li>
+            <li><strong>What to improve:</strong> {{ trade_journal.improve | join(', ') }}</li>
+            <li><strong>Psychological traps:</strong> {{ trade_journal.traps | join(', ') }}</li>
           </ul>
-          {% else %}
-          <div style='font-size:14px;color:#6b7280;'>No new notes.</div>
-          {% endif %}
         </div>
 
+        <!-- 5. New Opportunities -->
         <div style="margin:16px 0 10px 0;">
-          <div style="font-weight:700;color:#111827;margin-bottom:6px;">💡 New opportunities</div>
-          {% if opportunities %}
-          <ul style='margin:6px 0 0 18px;padding:0;'>
-            {% for o in opportunities %}
-            <li><strong>{{ o.ticker }}</strong> — {{ o.setup }}: {{ o.entry_hint }}</li>
+          <div style="font-weight:700;color:#111827;margin-bottom:6px;">5. New Opportunities</div>
+          {% if new_opportunities %}
+          <ul style='margin:6px 0 0 18px;padding:0;font-size:14px;'>
+            {% for o in new_opportunities %}
+            <li><strong>{{ o.ticker }} ({{ o.setup }}):</strong> {{ o.reason }}</li>
             {% endfor %}
           </ul>
           {% else %}
-          <div style='font-size:14px;color:#6b7280;'>None highlighted.</div>
+          <div style='font-size:14px;color:#6b7280;'>None identified.</div>
           {% endif %}
         </div>
 
+        <!-- 6. Reminders -->
         <div style="margin:16px 0 18px 0;">
-          <div style="font-weight:700;color:#111827;margin-bottom:6px;">⏳ Reminders</div>
-          {% if reminders %}
-          <ul style='margin:6px 0 0 18px;padding:0;'>
-            {% for r in reminders %}
-            <li>{{ r }}</li>
-            {% endfor %}
+          <div style="font-weight:700;color:#111827;margin-bottom:6px;">6. Reminders</div>
+          <ul style='margin:6px 0 0 18px;padding:0;font-size:14px;'>
+            <li><strong>Max risk per trade:</strong> {{ reminders.max_risk_per_trade }}</li>
+            <li><strong>Stop-loss discipline:</strong> {{ reminders.stop_loss_discipline }}</li>
+            <li><strong>Emotional check-in:</strong> {{ reminders.emotional_check_in }}</li>
           </ul>
-          {% else %}
-          <div style='font-size:14px;color:#6b7280;'>Stay disciplined: risk, stops, and mindset.</div>
-          {% endif %}
         </div>
       </div>
 

@@ -78,102 +78,163 @@ client = OpenAI(api_key=OPENAI_API_KEY, timeout=3600)
 # 5) AI Workflow
 # ---------------------------
 
-def build_gpt4o_prompt(market_data: Dict[str, Any]) -> str:
+def build_gpt4o_prompt(market_data: Dict[str, Any], now_pht: datetime) -> str:
     market_data_str = json.dumps(market_data, indent=2)
+    session_time = now_pht.strftime("%H:%M")
+
+    # Determine market session
+    session = "Pre-Market"
+    if "09:30" <= session_time < "12:00":
+        session = "Morning Session"
+    elif "12:00" <= session_time < "14:00":
+        session = "Lunchtime"
+    elif "14:00" <= session_time < "16:00":
+        session = "Afternoon Session"
+    elif "16:00" <= session_time < "17:00":
+        session = "Closing Auction"
+    elif "17:00" <= session_time:
+        session = "After-hours Session"
+
     return f"""
 You are a data structuring AI. Your task is to take raw market data and structure it into a specific JSON format.
-Calculate RSI, MACD, and identify trends and patterns.
+The current time is {now_pht.strftime('%Y-%m-%d %H:%M:%S %Z')}. The market session is {session}.
 
-Raw Market Data:
+Raw Market Data (prices and news):
 {market_data_str}
 
-Return ONLY valid JSON, no prose, matching this schema exactly:
+Structure this data into the following JSON format. For each stock in the watchlist, calculate the technical indicators.
+For open positions, use the provided prices.
+
+Return ONLY valid JSON, no prose.
+
 {{
-  "date": "string",
+  "session": "{session}",
   "market_overview": {{
     "sentiment": "string",
     "indexes": {{"sp500": "string", "nasdaq": "string"}},
-    "news": ["string", "string"]
+    "economic_events": ["string"]
   }},
   "watchlist": [
     {{
       "ticker": "string",
-      "rsi": "number (0-100)",
-      "macd": "bullish|bearish|neutral",
-      "ma_trend": "string",
-      "pattern": "string",
-      "entry": "number",
-      "rank": "Excellent|Very Good|Good|Neutral|Bad|Very Bad|Worse",
-      "action": "Buy|Hold|Watch|Sell",
-      "notes": ""
+      "news": ["string"],
+      "support": "number",
+      "resistance": "number",
+      "rsi": "number",
+      "macd": "string",
+      "moving_averages": "string",
+      "patterns": ["string"],
+      "suggested_entry": "string",
+      "rank": "Excellent|Good|Neutral|Bad|Very Bad",
+      "action": "Buy|Hold|Watch|Sell"
     }}
   ],
   "open_positions": [
-      {{
-          "ticker": "string",
-          "entry_price": "number",
-          "current_price": "number"
-      }}
-  ],
-  "journal": {{
-    "did_right": ["string"],
-    "improve": ["string"],
-    "traps": ["string"]
-  }},
-  "opportunities": [
     {{
       "ticker": "string",
-      "setup": "string",
-      "entry_hint": "string"
+      "entry_price": "number",
+      "current_price": "number",
+      "outlook": "",
+      "action_suggestion": "",
+      "target_sell_zone": ""
     }}
   ],
-  "reminders": ["string"]
+  "trade_journal": {{
+    "did_right": [""],
+    "improve": [""],
+    "traps": [""]
+  }},
+  "new_opportunities": [
+    {{
+      "ticker": "string",
+      "setup": "High volume breakout|Oversold bounce|Trend continuation",
+      "reason": ""
+    }}
+  ],
+  "reminders": {{
+    "max_risk_per_trade": "string",
+    "stop_loss_discipline": "string",
+    "emotional_check_in": "string"
+  }}
 }}
 """
 
 def build_gpt5_prompt(structured_data: str) -> str:
     return f"""
-You are a senior market analyst. Review the following structured market data.
-For each item in the watchlist, provide a detailed reasoning in the 'notes' field.
-The reasoning should explain WHY the stock is a good candidate (based on its technicals like RSI, MACD, pattern) and WHEN a potential entry might be considered (e.g., "on a breakout above $550" or "on a pullback to the 50-day MA around $520").
+You are a senior market analyst providing a detailed trading briefing.
+Based on the structured data below, provide deep, insightful analysis for the empty fields.
+
+- For `open_positions`, fill in `outlook`, `action_suggestion`, and `target_sell_zone`.
+- For `trade_journal`, provide a detailed summary.
+- For `new_opportunities`, provide a reason for each setup.
+- For `reminders`, provide personalized advice.
 
 {structured_data}
 
-Return the complete JSON object with the 'notes' fields populated. Do not add any other text.
+Return the complete JSON object with the analytical fields populated. Do not add any other text.
 """
 
 def call_openai_api(prompt: str, model: str) -> str:
     logger.info(f"Requesting briefing JSON with model={model}")
     # This is a placeholder for the actual API call.
-    # In a real implementation, you would use the OpenAI client:
-    # response = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
-    # return response.choices[0].message.content
-
-    # Mock responses for testing
     if model == DATA_MODEL:
-        return json.dumps({
-            "date": datetime.now(PHT).strftime("%A, %B %d, %Y"),
-            "market_overview": {"sentiment": "Cautiously Optimistic", "indexes": {"sp500": "+0.2%", "nasdaq": "+0.5%"}, "news": ["Chip stocks rally.", "Inflation data comes in cooler than expected."]},
-            "watchlist": [{"ticker": "MSFT", "rsi": 65, "macd": "bullish", "ma_trend": "uptrend", "pattern": "bull flag", "entry": 550, "rank": "Excellent", "action": "Buy", "notes": ""}],
-            "open_positions": [{"ticker": "NVDA", "entry_price": 182.72, "current_price": 185.00}],
-            "journal": {"did_right": ["Stuck to trading plan."], "improve": ["Avoided chasing FOMO trades."], "traps": ["Over-leveraging."]},
-            "opportunities": [{"ticker": "ANET", "setup": "breakout", "entry_hint": "Entry on a close above $145"}],
-            "reminders": ["Max risk per trade: 1.5%-2.0%", "Stay disciplined."]
-        })
+        # In a real scenario, GPT-4o would generate this based on the provided market data.
+        # For the mock, we'll create a full structure.
+        structured_data = {
+            "session": "Morning Session",
+            "market_overview": {
+                "sentiment": "Mixed",
+                "indexes": {"sp500": "+0.1%", "nasdaq": "-0.2%"},
+                "economic_events": ["CPI data release at 8:30 AM EST.", "Fed chair speaks at 10:00 AM EST."]
+            },
+            "watchlist": [
+                {
+                    "ticker": ticker,
+                    "news": [f"News item 1 for {ticker}.", f"News item 2 for {ticker}."],
+                    "support": 100, "resistance": 120, "rsi": 55, "macd": "bullish",
+                    "moving_averages": "Above 50-day MA", "patterns": ["cup and handle"],
+                    "suggested_entry": f"Consider entry above 120",
+                    "rank": "Good", "action": "Watch"
+                } for ticker in WATCHLIST_UNIVERSE
+            ],
+            "open_positions": [
+                {
+                    "ticker": ticker, "entry_price": price, "current_price": price * 1.02,
+                    "outlook": "", "action_suggestion": "", "target_sell_zone": ""
+                } for ticker, price in OPEN_POSITIONS.items()
+            ],
+            "trade_journal": {"did_right": [""], "improve": [""], "traps": [""]},
+            "new_opportunities": [{"ticker": "GOOGL", "setup": "Oversold bounce", "reason": ""}],
+            "reminders": {"max_risk_per_trade": "", "stop_loss_discipline": "", "emotional_check_in": ""}
+        }
+        return json.dumps(structured_data)
+
     elif model == REASONING_MODEL:
+        # GPT-5 would fill in the analytical fields.
         start = prompt.find('{')
         end = prompt.rfind('}')
         if start != -1 and end != -1:
             json_part = prompt[start:end+1]
             data = json.loads(json_part)
-            for item in data.get("watchlist", []):
-                item["notes"] = f"Reasoning for {item['ticker']}: Strong bullish signals from MACD and MA trend. A buy signal would be a breakout above the recent high of ${item['entry']:.2f}."
+            # Add detailed reasoning
+            for pos in data["open_positions"]:
+                pos["outlook"] = f"Positive outlook for {pos['ticker']} due to market conditions."
+                pos["action_suggestion"] = "Hold position, consider tightening stop-loss."
+                pos["target_sell_zone"] = f"Between ${pos['current_price'] * 1.1:.2f} and ${pos['current_price'] * 1.2:.2f}"
+            data["trade_journal"]["did_right"] = ["Followed trading plan for NVDA."]
+            data["trade_journal"]["improve"] = ["Could have taken profits on MSFT sooner."]
+            data["trade_journal"]["traps"] = ["Avoided FOMO on meme stocks."]
+            data["new_opportunities"][0]["reason"] = "GOOGL is showing signs of bouncing from a key support level."
+            data["reminders"]["max_risk_per_trade"] = "1.5% of portfolio"
+            data["reminders"]["stop_loss_discipline"] = "On track"
+            data["reminders"]["emotional_check_in"] = "Feeling calm and objective. Predicted mood: Focused."
             return json.dumps(data)
+
     return ""
 
-def get_market_briefing_data() -> Dict[str, Any]:
+def get_market_briefing_data(now_pht: datetime) -> Dict[str, Any]:
     market_data = fetch_market_data()
-    prompt_4o = build_gpt4o_prompt(market_data)
+    prompt_4o = build_gpt4o_prompt(market_data, now_pht)
     structured_data_json = call_openai_api(prompt_4o, model=DATA_MODEL)
     prompt_5 = build_gpt5_prompt(structured_data_json)
     final_data_json = call_openai_api(prompt_5, model=REASONING_MODEL)
@@ -196,7 +257,17 @@ def fetch_market_data() -> Dict[str, Any]:
             return {}
         last_prices = ticker_data['Close'].tail(1).to_dict('records')[0]
         ticker_data_dict = {t: {'price': p} for t, p in last_prices.items() if pd.notna(p)}
-        logger.info(f"Successfully fetched prices for: {list(ticker_data_dict.keys())}")
+
+        for ticker in WATCHLIST_UNIVERSE:
+            if ticker in ticker_data_dict:
+                try:
+                    news = yf.Ticker(ticker).news
+                    if news:
+                        ticker_data_dict[ticker]['news'] = [n['title'] for n in news[:3]] # Get top 3 news titles
+                except Exception as e:
+                    logger.warning(f"Could not fetch news for {ticker}: {e}")
+
+        logger.info(f"Successfully fetched data for: {list(ticker_data_dict.keys())}")
         return ticker_data_dict
     except Exception as e:
         logger.error(f"An unexpected error occurred while fetching data from yfinance: {e}", exc_info=True)
@@ -299,7 +370,7 @@ def send_email(subject: str, html_body: str, plain_body: str) -> None:
 def daily_job() -> None:
     now_pht = datetime.now(PHT)
     logger.info("Starting daily job...")
-    data = get_market_briefing_data()
+    data = get_market_briefing_data(now_pht)
     data['verified_at'] = now_pht.isoformat()
     html_report = build_html_email(data, now_pht)
     plain_report = build_plain_text(data, now_pht)
